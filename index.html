@@ -1,31 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-		/>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-		<title>reveal.js</title>
+		<title>20 years of pahole: alive and kicking!</title>
 
-		<link rel="stylesheet" href="dist/reset.css" />
-		<link rel="stylesheet" href="dist/reveal.css" />
-		<link rel="stylesheet" href="dist/theme/black.css" />
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/black.css">
 
 		<!-- Theme used for syntax highlighted code -->
-		<link rel="stylesheet" href="dist/plugin/highlight/monokai.css" />
+		<link rel="stylesheet" href="dist/plugin/highlight/monokai.css">
+		<style>
+			.reveal pre { font-size: 0.45em; }
+			.reveal pre.small { font-size: 0.38em; }
+		</style>
 	</head>
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+				<section>
+					<h2>20 years of pahole:<br>alive and kicking!</h2>
+					<br>
+					<br>
+					<br>
+					<table>
+						<tbody>
+							<tr>
+								<th>
+									<center>
+									<i>Arnaldo Carvalho de Melo, Alan Maguire</i>
+									<br>
+									<i>Linux Plumbers Conference 2026</i>
+									<br>
+									<b>Refereed Track</b>
+									<br>
+									</center>
+								</th>
+							</tr>
+						</tbody>
+					</table>
+				</section>
+				<section>
+					<h2>October 24, 2006</h2>
+					<br>
+					<ul>
+						<li>First cset, twenty years ago</li>
+						<li>Goal: reorganize kernel networking data structures</li>
+						<li>Done beyond expectations</li>
+						<li>Countless projects view structs with precision</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Swiss army knife</h2>
+					<br>
+					<ul>
+						<li>DWARF to CTF conversion</li>
+						<li>Crucially: DWARF to BTF</li>
+						<li>Part of the kernel build: BPF CO-RE</li>
+						<li>Kept earning its keep</li>
+					</ul>
+				</section>
+				<section>
+					<h2>What this is about?</h2>
+					<br>
+					<ul>
+						<li>DWARF is a moving target</li>
+						<li>Real inconsistencies, from the test suite</li>
+						<li>Testing strategies that survive distros</li>
+						<li>What's new: C++, Rust, dwz, coverage</li>
+						<li>perf integration: finally real</li>
+					</ul>
+				</section>
+				<section>
+					<h2>DWARF is a moving target</h2>
+					<br>
+					<ul>
+						<li>Compilers: gcc, clang, rustc...</li>
+						<li>Versions, vendors, distro packaging</li>
+						<li>Standards evolve: DWARF 2..5, 6 coming</li>
+						<li>Same source, different DWARF</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Case 1: missing .bss DATASEC</h2>
+					<br>
+					<ul>
+						<li>Failures on AlmaLinux 8 containers</li>
+						<li>bpftool v4.18.0: no .bss DATASEC in dumps</li>
+						<li>bpftool v7.5+: correct</li>
+						<li>Not a pahole bug: old tool can't display it</li>
+					</ul>
+					<pre><code data-trim>
+  if echo "$dump" | grep -q "DATASEC '\.bss'"; then
+      check_bss_variable
+  else
+      info_log "skip: bpftool doesn't display .bss DATASEC"
+  fi
+					</code></pre>
+				</section>
+				<section>
+					<h2>Case 2: _Atomic typedefs</h2>
+					<br>
+					<pre><code data-trim>
+  typedef _Atomic int atomic_int;
+  struct test { atomic_int x; };
+					</code></pre>
+					<ul>
+						<li>clang 21.1.8: typedef &rarr; base_type (no atomic node)</li>
+						<li>gcc/clang 22+: typedef &rarr; DW_TAG_atomic_type</li>
+						<li>pahole reads DWARF, not source: both outputs correct</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Proving it: artifact dumps</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  === DWARF atomic types (abbreviated) ===
+  (empty)                        # No DW_TAG_atomic_type!
+  === pahole --compile output ===
+  typedef int atomic_int;        # correct, per the DWARF
+					</code></pre>
+					<ul>
+						<li>Capture before the container exits</li>
+						<li>Input (DWARF) vs output (pahole), side by side</li>
+						<li><tt>tests/tests -v --dump-artifacts 51</tt></li>
+					</ul>
+				</section>
+				<section>
+					<h2>Case 3: DWARF versions</h2>
+					<br>
+					<ul>
+						<li>Default DWARF version varies by distro</li>
+						<li>Features only in newer versions (_Atomic needs 5)</li>
+						<li>Force it when testing features:</li>
+					</ul>
+					<pre><code data-trim>
+  gcc -gdwarf-5 -c test.c
+					</code></pre>
+				</section>
+				<section>
+					<h2>Case 4: BTF VAR support</h2>
+					<br>
+					<ul>
+						<li>Old bpftool: no VAR entries in output</li>
+						<li>Skip when the tool is too old, say why</li>
+					</ul>
+					<pre><code data-trim>
+  if ! echo "$dump" | grep -q '\[.*\] VAR'; then
+      info_log "skip: bpftool doesn't support VAR in dump output"
+      test_skip
+  fi
+					</code></pre>
+				</section>
+				<section>
+					<h2>Testing philosophy</h2>
+					<br>
+					<ul>
+						<li>Pass or gracefully skip: RHEL8 to Fedora latest</li>
+						<li>Detect capabilities, don't assume them</li>
+						<li>Every skip explains: what, where, why not a bug</li>
+					</ul>
+				</section>
+				<section>
+					<h2>What's new: languages</h2>
+					<br>
+					<ul>
+						<li>C++ tags: namespaces, templates, using-decls</li>
+						<li>Rust: variant parts, discriminants (eBPF track talk!)</li>
+						<li>Non-C precedent: Go at Trace Summit Bilbao 2023</li>
+					</ul>
+				</section>
+				<section>
+					<h2>What's new: plumbing</h2>
+					<br>
+					<ul>
+						<li>DWZ alternate debug files</li>
+						<li>Partial units, split DWARF</li>
+						<li>Modern distro DWARF just works</li>
+						<li>Coverage analysis, growing regression suite</li>
+					</ul>
+				</section>
+				<section>
+					<h2>perf integration: finally real</h2>
+					<br>
+					<ul>
+						<li>Perennial request: pahole + perf together</li>
+						<li>Data-type profiling supplies access weights</li>
+						<li>pahole proposes cacheline groups, flags false sharing</li>
+						<li>Full story at Cauldron (yesterday?)</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Lessons learned</h2>
+					<br>
+					<ul>
+						<li>Compilers are inconsistent: read the DWARF</li>
+						<li>Tools evolve at different rates (6 years of bpftool!)</li>
+						<li>Tests must be environment-aware</li>
+						<li>Dumps save hours of debugging</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Future</h2>
+					<br>
+					<ul>
+						<li>Rust: niche layouts, const generics, async machines</li>
+						<li>DWARF 6: new tags, adoption varies</li>
+						<li>BTF extensions for what C can't express</li>
+					</ul>
+				</section>
+				<section>
+					<h2>THE END</h2>
+					<ul>
+						<li><a href=https://github.com/acmel/dwarves>https://github.com/acmel/dwarves</a></li>
+						<li>acme@redhat.com</li>
+						<li><a href=https://bsky.app/profile/acmel.bsky.social>https://bsky.app/profile/acmel.bsky.social</a></li>
+					</ul>
+				</section>
 			</div>
 		</div>
 
 		<script src="dist/reveal.js"></script>
+		<script src="dist/plugin/zoom.js"></script>
 		<script src="dist/plugin/notes.js"></script>
+		<script src="dist/plugin/search.js"></script>
 		<script src="dist/plugin/markdown.js"></script>
 		<script src="dist/plugin/highlight.js"></script>
 		<script>
@@ -36,7 +236,7 @@
 				hash: true,
 
 				// Learn about plugins: https://revealjs.com/plugins/
-				plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+				plugins: [ RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
 			});
 		</script>
 	</body>
