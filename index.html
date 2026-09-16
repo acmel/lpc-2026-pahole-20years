@@ -223,6 +223,36 @@
 					</ul>
 				</section>
 				<section>
+					<h2>perf sees the fields (Cauldron talk)</h2>
+					<br>
+					<pre><code data-trim>
+  # perf annotate --stdio --data-type
+  Annotate type: 'struct btrfs_key' (6282 samples):
+    Percent  offset  size  field
+     45.93     0       8       __u64       objectid;
+     26.26     8       1       __u8        type;
+     27.80     9       8       __u64       offset;
+					</code></pre>
+				</section>
+				<section>
+					<h2>pahole acts on it (Cauldron talk)</h2>
+					<br>
+					<pre><code data-trim>
+  $ pahole --data-type-profile=profile.json vmlinux
+  &gt;&gt;&gt; FALSE SHARING: cacheline 0: saddr / bytes_rx
+  &gt;&gt;&gt; GROUP (true sharing): fieldA / fieldB
+  (build ID verified: profiled binary == analyzed binary)
+					</code></pre>
+				</section>
+				<section>
+					<h2>One metric to remember</h2>
+					<br>
+					<br>
+					<p><i>bad_addr: how much of a kernel profile is disassembled from text that never executed.</i></p>
+					<br>
+					<p>Full story in the Cauldron talk.</p>
+				</section>
+				<section>
 					<h2>Lessons learned</h2>
 					<br>
 					<ul>
