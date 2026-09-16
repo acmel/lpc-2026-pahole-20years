@@ -83,6 +83,29 @@
 					</ul>
 				</section>
 				<section>
+					<h2>Types decode files: --prettify</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  $ pahole --header elf64_hdr --prettify=/bin/bash
+  {
+          .e_ident = { 127, 69, 76, 70, 2, 1, 1, 0, ... },
+          .e_type = 3,
+          .e_machine = 62,
+          .e_entry = 204016,
+          ...
+  },
+  $ pahole -F dwarf -V $perf --header=perf_file_header \
+      --seek_bytes '$header.data.offset' \
+      --size_bytes='$header.data.size' \
+      -C "perf_event_header(...)" --prettify perf.data
+  { .type = PERF_RECORD_COMM, ... },
+					</code></pre>
+					<ul>
+						<li>Types describe the file: ELF, perf.data, ...</li>
+						<li>perf.data types come from the perf binary itself</li>
+					</ul>
+				</section>
+				<section>
 					<h2>What this is about?</h2>
 					<br>
 					<ul>
