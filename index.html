@@ -221,6 +221,29 @@
 					</ul>
 				</section>
 				<section>
+					<h2>Regression tests</h2>
+					<br>
+					<ul>
+						<li>~77 tests in tests/, every feature covered</li>
+						<li>95 test commits since Jan 2025, with AI coding agents</li>
+						<li>Portable: detect, skip with reason, dump artifacts</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Coverage, regularly</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  $ scripts/coverage_table.py   # llvm-cov, best first
+  │ dwarf_loader.c  │ 3376 │ 2559 │  817 │ ███████████████ 75.8% │
+  │ pahole.c        │ 2178 │ 1465 │  713 │ █████████████   67.3% │
+  │ TOTAL           │17426 │11599 │ 5827 │ █████████████   66.6% │
+  (container run: perf tests skipped, 74 Ok)
+					</code></pre>
+					<ul>
+						<li><tt>coverage/coverage-diff.sh</tt>: what a change moves</li>
+					</ul>
+				</section>
+				<section>
 					<h2>First non-C language: C++</h2>
 					<br>
 					<ul>
