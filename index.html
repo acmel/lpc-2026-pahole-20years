@@ -106,6 +106,20 @@
 					</ul>
 				</section>
 				<section>
+					<h2>Compilable output: fullcircle</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  $ pfunct --compile file.o &gt; file.c   # C from DWARF
+  $ CFLAGS=$(readelf -wi file.o | grep DW_AT_producer ...)
+  $ gcc $CFLAGS -c -g file.c -o file2.o
+  $ codiff -q -s file.o file2.o        # silent: same types
+					</code></pre>
+					<ul>
+						<li>Binary &rarr; C &rarr; binary: types survive the round trip</li>
+						<li>Script <tt>fullcircle</tt> in the pahole tree, used in CI</li>
+					</ul>
+				</section>
+				<section>
 					<h2>What this is about?</h2>
 					<br>
 					<ul>
