@@ -358,6 +358,59 @@
 					</ul>
 				</section>
 				<section>
+					<h2>Recording data accesses: perf mem record</h2>
+					<br>
+					<pre><code data-trim>
+  $ perf mem record -a -- sleep 10
+  [ perf record: Captured and wrote 0.037 MB perf.data (4 samples) ]
+  $ perf evlist
+  cpu_core/mem-loads,ldlat=30/P
+  cpu_core/mem-stores/P
+					</code></pre>
+					<ul>
+						<li>Samples loads and stores with data addresses</li>
+						<li>Intel PEBS, AMD IBS</li>
+						<li>DWARF turns data addresses into types</li>
+					</ul>
+				</section>
+				<section>
+					<h2>perf report -s type</h2>
+					<br>
+					<pre><code data-trim>
+  $ perf report --stdio -s type
+  # Samples: 4  of event 'cpu_atom/mem-loads,ldlat=30/P'
+  # Overhead  Data Type
+  # ........  .........
+     42.86%  struct list_head
+     42.86%  (unknown)
+     14.29%  char
+					</code></pre>
+					<ul>
+						<li>Types resolved from data addresses, via DWARF</li>
+						<li>(unknown): DSO without debug info</li>
+					</ul>
+				</section>
+				<section>
+					<h2>perf report -s type,typeoff, dso</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  $ perf report --stdio -s type,typeoff
+  # Overhead  Data Type        Data Type Offset
+     42.86%  struct list_head  struct list_head +8 (prev)
+     42.86%  (unknown)         (unknown) +0 (no field)
+     14.29%  char              char +0 (no field)
+
+  $ perf report --stdio -s dso,type,typeoff
+  # Overhead  Shared Object      Data Type        Data Type Offset
+     42.86%  [kernel.kallsyms]  struct list_head  struct list_head +8 (prev)
+     28.57%  libc.so.6          (unknown)         (unknown) +0 (no field)
+					</code></pre>
+					<ul>
+						<li>typeoff: which field of the type is hot</li>
+						<li>dso: which binary touches it</li>
+					</ul>
+				</section>
+				<section>
 					<h2>perf sees the fields</h2>
 					<br>
 					<pre><code data-trim>
@@ -368,6 +421,14 @@
      26.26     8       1       __u8        type;
      27.80     9       8       __u64       offset;
 					</code></pre>
+					<pre class="small"><code data-trim>
+  $ perf report -s type --data-type-json=profile.json
+  $ pahole -F btf --perf-data-type=profile.json vmlinux
+					</code></pre>
+					<ul>
+						<li>Histograms exported as JSON</li>
+						<li>pahole matches accesses by offset</li>
+					</ul>
 				</section>
 				<section>
 					<h2>pahole acts on it</h2>
