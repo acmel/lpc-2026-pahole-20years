@@ -87,10 +87,12 @@
 					<h2>DWARF to BTF</h2>
 					<br>
 					<ul>
-						<li>First discussed with Daniel Borkmann, Alexei Starovoitov</li>
+						<li>First discussed with:</li>
+						<li>Daniel Borkmann, Alexei Starovoitov</li>
 						<li>Santa Fe, 2015</li>
 						<li>Contributed by Martin KaFai Lau (Meta), Mar 2018</li>
-						<li>First use: pretty-print BPF maps; now: kernel build, CO-RE</li>
+						<li>First use: pretty-print BPF maps</li>
+						<li>Now: kernel build, CO-RE</li>
 					</ul>
 				</section>
 				<section>
@@ -178,7 +180,8 @@
 					<ul>
 						<li>clang 21.1.8: typedef &rarr; base_type (no atomic node)</li>
 						<li>gcc/clang 22+: typedef &rarr; DW_TAG_atomic_type</li>
-						<li>pahole reads DWARF, not source: both outputs correct</li>
+						<li>pahole reads DWARF, not source</li>
+						<li>Both outputs correct</li>
 					</ul>
 				</section>
 				<section>
@@ -236,7 +239,8 @@
 					<br>
 					<ul>
 						<li>~77 tests in tests/, every feature covered</li>
-						<li>95 test commits since Jan 2025, with AI coding agents</li>
+						<li>95 test commits since Jan 2025</li>
+						<li>With AI coding agents</li>
 						<li>Portable: detect, skip with reason, dump artifacts</li>
 					</ul>
 				</section>
@@ -258,10 +262,13 @@
 					<h2>First non-C language: C++</h2>
 					<br>
 					<ul>
-						<li>Dec 2006, weeks after the Oct 24 start: DW_TAG_inheritance</li>
-						<li>Early users: developers at CERN, 32-bit to 64-bit move</li>
+						<li>Dec 2006, weeks after the Oct 24 start</li>
+						<li>DW_TAG_inheritance</li>
+						<li>Early users: developers at CERN</li>
+						<li>32-bit to 64-bit move</li>
 						<li>Their codebase: mostly C++</li>
-						<li>Then: namespaces (2007), class_type (2008), templates</li>
+						<li>Then: namespaces (2007), class_type (2008)</li>
+						<li>Templates</li>
 					</ul>
 				</section>
 				<section>
@@ -299,8 +306,9 @@
 					</code></pre>
 					<ul>
 						<li>Packs by size, kills holes. Knows nothing about use.</li>
-						<li>Splits fields that travel together; packs fields that contend</li>
-						<li>Open task: feed co-access + false-sharing into the algorithm</li>
+						<li>Splits fields that travel together</li>
+						<li>Packs fields that contend</li>
+						<li>Open task: feed co-access + false-sharing into it</li>
 					</ul>
 				</section>
 				<section>
@@ -309,12 +317,13 @@
 					<ul>
 						<li>Perennial request: pahole + perf together</li>
 						<li>Data-type profiling supplies access weights</li>
-						<li>pahole proposes cacheline groups, flags false sharing</li>
-						<li>Full story at Cauldron (yesterday?)</li>
+						<li>pahole proposes cacheline groups</li>
+						<li>Flags false sharing</li>
+						<li>Full story in the Cauldron talk (yesterday?)</li>
 					</ul>
 				</section>
 				<section>
-					<h2>perf sees the fields (Cauldron talk)</h2>
+					<h2>perf sees the fields</h2>
 					<br>
 					<pre><code data-trim>
   # perf annotate --stdio --data-type
@@ -326,7 +335,7 @@
 					</code></pre>
 				</section>
 				<section>
-					<h2>pahole acts on it (Cauldron talk)</h2>
+					<h2>pahole acts on it</h2>
 					<br>
 					<pre><code data-trim>
   $ pahole --data-type-profile=profile.json vmlinux
@@ -347,10 +356,13 @@
 					<h2>Ecosystem, not alone</h2>
 					<br>
 					<ul>
-						<li>libabigail abidiff: full ABI compat; codiff: lighter dump diff</li>
+						<li>libabigail abidiff: full ABI compat</li>
+						<li>codiff: lighter dump diff</li>
 						<li>gdb <tt>ptype /o</tt> (8.1): offsets in the debugger</li>
-						<li>dwgrep: query DWARF DIEs; DHAT: heap access histograms</li>
-						<li>Compilers emit BTF now (GCC -gbtf, LLVM -gbtf); pahole still dedups/repairs</li>
+						<li>dwgrep: query DWARF DIEs</li>
+						<li>DHAT: heap access histograms</li>
+						<li>Compilers emit BTF now (GCC -gbtf, LLVM -gbtf)</li>
+						<li>pahole still dedups/repairs</li>
 					</ul>
 				</section>
 				<section>
