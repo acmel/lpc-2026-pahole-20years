@@ -431,12 +431,26 @@
 					</ul>
 				</section>
 				<section>
-					<h2>pahole acts on it</h2>
+					<h2>Testing it: perf test -w false_sharing</h2>
 					<br>
 					<pre><code data-trim>
-  $ pahole --data-type-profile=profile.json vmlinux
-  &gt;&gt;&gt; FALSE SHARING: cacheline 0: saddr / bytes_rx
-  &gt;&gt;&gt; GROUP (true sharing): fieldA / fieldB
+  $ perf mem record -- perf test -w false_sharing 4 4
+					</code></pre>
+					<ul>
+						<li>Workload shaped as a TCP connection</li>
+						<li>Read-mostly identity + per-packet rx counters</li>
+						<li>Same cacheline, reader threads vs writer CPU</li>
+						<li>Exercises the data-type profiler and pahole</li>
+					</ul>
+				</section>
+				<section>
+					<h2>pahole acts on it</h2>
+					<br>
+					<pre class="small"><code data-trim>
+  $ perf data convert --to-ctf=./ctf.dir --data-type -i perf.data
+  $ pahole -F dwarf --perf-data-type=./ctf.dir -C net_conn perf
+  &gt;&gt;&gt; FALSE SHARING: cacheline 0: saddr / packets_rx
+  &gt;&gt;&gt; GROUP (true sharing): mss / snd_wscale -- consider same cacheline
   (build ID verified: profiled binary == analyzed binary)
 					</code></pre>
 				</section>
