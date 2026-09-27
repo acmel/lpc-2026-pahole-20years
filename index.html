@@ -463,6 +463,22 @@
 					<p>Full story in the Cauldron talk.</p>
 				</section>
 				<section>
+					<h2>Inline site information</h2>
+					<br>
+					<ul>
+						<li>pahole already reads inline expansion info from DWARF</li>
+						<li>Coming soon - read BTF-encoded info about inline sites for running kernel</li>
+						<li>Where are inline sites/parameters?</li>
+					</ul>
+
+					<pre class="small"><code data-trim>$ pfunct --inline_sites --running /sys/kernel/btf/vmlinux.inline
+0xffffffff8120004a [trace_initcall_start_cb+0xa, .text +0x20004a] task_pid_nr(struct task_struct * tsk [%rax])
+0xffffffff8120005f [trace_initcall_start_cb+0x1f, .text +0x20005f] get_current(void)
+0xffffffff81200090 [trace_initcall_level+0x0, .text +0x200090] arch_static_branch(const struct static_key *  key [addr 0xffffffff83e275e8], const bool  branch [const 0])
+0xffffffff81200097 [trace_initcall_level+0x7, .text +0x200097] __do_trace_initcall_level(const char  * level [%rdi])
+					</code></pre>
+				</section>
+				<section>
 					<h2>Ecosystem, not alone</h2>
 					<br>
 					<ul>
