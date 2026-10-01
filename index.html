@@ -15,6 +15,7 @@
 		<style>
 			.reveal pre { font-size: 0.45em; }
 			.reveal pre.small { font-size: 0.38em; }
+			.reveal pre.smaller { font-size: 0.32em; }
 		</style>
 	</head>
 	<body>
@@ -166,7 +167,7 @@
 				<section>
 					<h2>perf.data, by its own types</h2>
 					<br>
-					<pre class="small"><code data-trim data-line-numbers="|1-2|3|5-17">
+					<pre class="smaller"><code data-trim data-line-numbers="|1-2|3|5-17">
 $ pahole -F dwarf ~/bin/perf --header=perf_file_header \
     --seek_bytes &#x27;$header.data.offset&#x27; --size_bytes=&#x27;$header.data.size&#x27; \
     -C &#x27;perf_event_header(sizeof,type,type_enum=perf_event_type,filter=type==PERF_RECORD_MMAP2)&#x27; \
