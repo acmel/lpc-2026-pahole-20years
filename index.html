@@ -158,16 +158,39 @@
           .e_entry = 204016,
           ...
   },
-  $ pahole -F dwarf -V $perf --header=perf_file_header \
-      --seek_bytes '$header.data.offset' \
-      --size_bytes='$header.data.size' \
-      -C "perf_event_header(...)" --prettify perf.data
-  { .type = PERF_RECORD_COMM, ... },
 					</code></pre>
 					<ul>
 						<li>Types describe the file: ELF, perf.data, ...</li>
-						<li>perf.data types come from the perf binary itself</li>
 					</ul>
+				</section>
+				<section>
+					<h2>perf.data, decoded by its own types</h2>
+					<br>
+					<pre class="small"><code data-trim data-line-numbers="|1-2|3|5-17">
+$ pahole -F dwarf ~/bin/perf --header=perf_file_header \
+    --seek_bytes &#x27;$header.data.offset&#x27; --size_bytes=&#x27;$header.data.size&#x27; \
+    -C &#x27;perf_event_header(sizeof,type,type_enum=perf_event_type,filter=type==PERF_RECORD_MMAP2)&#x27; \
+    --prettify perf.data --count 1
+{
+      .header = {
+              .type = PERF_RECORD_MMAP2,
+              .misc = 2,
+              .size = 112,
+      },
+      .pid = 1533617,
+      .tid = 1533617,
+      .start = 94667542700032,
+      .len = 90112,
+      ...
+      .filename = &quot;/usr/bin/ls&quot;,
+},
+					</code></pre>
+					<ul>
+						<li>perf.data types come from the perf binary itself</li>
+						<li>Record type picks the struct: MMAP2 here</li>
+					</ul>
+
+					<aside class="notes">Command from the pahole repo commit log, run without -V. With -V pahole also reports the sizeof member (size), the type member (type), the type enum (perf_event_type), the filter, and seek/size evaluated from the header: 0x3f0 and 0xd10. Output trimmed: after .pgoff come the maj/min/ino/ino_generation and build_id_size/build_id unions, then prot=5, flags=2. --header reads perf_file_header from the file, --seek_bytes and --size_bytes are expressions over its fields, -C names the record type with its sizeof member, the member that selects the type and the enum mapping type values to struct names, filter keeps only MMAP2 records, --count 1 stops after one.</aside>
 				</section>
 				<section>
 					<h2>Compilable output: <a href="https://git.kernel.org/pub/scm/devel/pahole/pahole.git/tree/fullcircle">fullcircle</a></h2>
