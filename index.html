@@ -43,6 +43,19 @@
 					</table>
 				</section>
 				<section>
+					<h2>What this is about?</h2>
+					<br>
+					<ul>
+						<li>20 years: from struct packing to BTF</li>
+						<li>DWARF is a moving target</li>
+						<li>Testing strategies that survive distros</li>
+						<li>What's new: C++, Rust, dwz, coverage</li>
+						<li>perf integration: finally real</li>
+						<li>BTF: recent developments</li>
+					</ul>
+
+				</section>
+				<section>
 					<h2>October 24, 2006</h2>
 					<br>
 					<ul>
@@ -168,17 +181,6 @@
 					</ul>
 				</section>
 				<section>
-					<h2>What this is about?</h2>
-					<br>
-					<ul>
-						<li>DWARF is a moving target</li>
-						<li>Real inconsistencies, from the test suite</li>
-						<li>Testing strategies that survive distros</li>
-						<li>What's new: C++, Rust, dwz, coverage</li>
-						<li>perf integration: finally real</li>
-					</ul>
-				</section>
-				<section>
 					<h2>DWARF is a moving target</h2>
 					<br>
 					<ul>
@@ -189,34 +191,38 @@
 					</ul>
 				</section>
 				<section>
-					<h2>Case 1: missing .bss DATASEC</h2>
+					<h2>Old tools, new BTF</h2>
 					<br>
 					<ul>
-						<li>Failures on AlmaLinux 8 containers</li>
-						<li>bpftool v4.18.0: no .bss DATASEC in dumps</li>
+						<li>AlmaLinux 8 containers: bpftool v4.18.0</li>
+						<li>No .bss DATASEC, no VAR in its dumps</li>
 						<li>bpftool v7.5+: correct</li>
-						<li>Not a pahole bug: old tool can't display it</li>
+						<li>Not a pahole bug: skip, and say why</li>
 					</ul>
 					<pre><code data-trim>
-  if echo "$dump" | grep -q "DATASEC '\.bss'"; then
-      check_bss_variable
-  else
-      info_log "skip: bpftool doesn't display .bss DATASEC"
-  fi
+if echo &quot;$dump&quot; | grep -q &quot;DATASEC &#x27;\.bss&#x27;&quot;; then
+    check_bss_variable
+else
+    info_log &quot;skip: bpftool doesn&#x27;t display .bss DATASEC&quot;
+fi
 					</code></pre>
+
+					<aside class="notes">Merged from two cases: missing .bss DATASEC and missing VAR entries in old bpftool dump output. Both: the BTF is right, the old tool cannot display it. Detect, skip, say why.</aside>
 				</section>
 				<section>
-					<h2>Case 2: _Atomic typedefs</h2>
+					<h2>DWARF decides what you see</h2>
 					<br>
 					<pre><code data-trim>
-  typedef _Atomic int atomic_int;
-  struct test { atomic_int x; };
+typedef _Atomic int atomic_int;
+struct test { atomic_int x; };
+
+gcc -gdwarf-5 -c test.c
 					</code></pre>
 					<ul>
-						<li>clang 21.1.8: typedef &rarr; base_type (no atomic node)</li>
-						<li>gcc/clang 22+: typedef &rarr; DW_TAG_atomic_type</li>
-						<li>pahole reads DWARF, not source</li>
-						<li>Both outputs correct</li>
+						<li>clang 21.1.8: typedef → base_type, no atomic node</li>
+						<li>gcc/clang 22+: typedef → DW_TAG_atomic_type</li>
+						<li>Both correct: pahole reads DWARF, not source</li>
+						<li>DWARF version varies by distro: force -gdwarf-5</li>
 					</ul>
 				</section>
 				<section>
@@ -233,32 +239,6 @@
 						<li>Input (DWARF) vs output (pahole), side by side</li>
 						<li><tt>tests/tests -v --dump-artifacts 51</tt></li>
 					</ul>
-				</section>
-				<section>
-					<h2>Case 3: DWARF versions</h2>
-					<br>
-					<ul>
-						<li>Default DWARF version varies by distro</li>
-						<li>Features only in newer versions (_Atomic needs 5)</li>
-						<li>Force it when testing features:</li>
-					</ul>
-					<pre><code data-trim>
-  gcc -gdwarf-5 -c test.c
-					</code></pre>
-				</section>
-				<section>
-					<h2>Case 4: BTF VAR support</h2>
-					<br>
-					<ul>
-						<li>Old bpftool: no VAR entries in output</li>
-						<li>Skip when the tool is too old, say why</li>
-					</ul>
-					<pre><code data-trim>
-  if ! echo "$dump" | grep -q '\[.*\] VAR'; then
-      info_log "skip: bpftool doesn't support VAR in dump output"
-      test_skip
-  fi
-					</code></pre>
 				</section>
 				<section>
 					<h2>Testing philosophy</h2>
@@ -354,105 +334,129 @@
 						<li>Data-type profiling supplies access weights</li>
 						<li>pahole proposes cacheline groups</li>
 						<li>Flags false sharing</li>
-						<li>Full story in the Cauldron talk (yesterday?)</li>
+						<li>Full story: <a href="https://fedorapeople.org/~acme/prez/gnu-tools-cauldron-2026-perf-pahole-datatype/">GNU Tools Cauldron talk</a></li>
 					</ul>
 				</section>
 				<section>
-					<h2>Recording data accesses: perf mem record</h2>
+					<h2>Recording: perf mem record</h2>
 					<br>
 					<pre><code data-trim>
-  $ perf mem record -a -- sleep 10
-  [ perf record: Captured and wrote 0.037 MB perf.data (4 samples) ]
-  $ perf evlist
-  cpu_core/mem-loads,ldlat=30/P
-  cpu_core/mem-stores/P
+# perf mem record -- perf test -w false_sharing
+[ perf record: Captured and wrote 5.520 MB perf.data (71250 samples) ]
+# perf evlist
+cpu/mem-loads,ldlat=30/P
+cpu/mem-stores/P
 					</code></pre>
 					<ul>
 						<li>Samples loads and stores with data addresses</li>
-						<li>Intel PEBS, AMD IBS</li>
+						<li>Intel PEBS, AMD IBS, arm64 SPE</li>
 						<li>DWARF turns data addresses into types</li>
 					</ul>
-				</section>
-				<section>
-					<h2>perf report -s type</h2>
-					<br>
-					<pre><code data-trim>
-  $ perf report --stdio -s type
-  # Samples: 4  of event 'cpu_atom/mem-loads,ldlat=30/P'
-  # Overhead  Data Type
-  # ........  .........
-     42.86%  struct list_head
-     42.86%  (unknown)
-     14.29%  char
-					</code></pre>
-					<ul>
-						<li>Types resolved from data addresses, via DWARF</li>
-						<li>(unknown): DSO without debug info</li>
-					</ul>
-				</section>
-				<section>
-					<h2>perf report -s type,typeoff, dso</h2>
-					<br>
-					<pre class="small"><code data-trim>
-  $ perf report --stdio -s type,typeoff
-  # Overhead  Data Type        Data Type Offset
-     42.86%  struct list_head  struct list_head +8 (prev)
-     42.86%  (unknown)         (unknown) +0 (no field)
-     14.29%  char              char +0 (no field)
 
-  $ perf report --stdio -s dso,type,typeoff
-  # Overhead  Shared Object      Data Type        Data Type Offset
-     42.86%  [kernel.kallsyms]  struct list_head  struct list_head +8 (prev)
-     28.57%  libc.so.6          (unknown)         (unknown) +0 (no field)
-					</code></pre>
-					<ul>
-						<li>typeoff: which field of the type is hot</li>
-						<li>dso: which binary touches it</li>
-					</ul>
+					<aside class="notes">perf's own false_sharing workload, shaped as a TCP connection: struct net_conn, 64-byte aligned. Cacheline 0: identity fields (read) and rx counters (written), the false-sharing line. Cacheline 1: tx and congestion fields, written. Cacheline 2: configuration, read only. Laptop i7-8650U, PEBS.</aside>
 				</section>
 				<section>
-					<h2>perf sees the fields</h2>
+					<h2>Data types, by cacheline</h2>
 					<br>
-					<pre><code data-trim>
-  # perf annotate --stdio --data-type
-  Annotate type: 'struct btrfs_key' (6282 samples):
-    Percent  offset  size  field
-     45.93     0       8       __u64       objectid;
-     26.26     8       1       __u8        type;
-     27.80     9       8       __u64       offset;
-					</code></pre>
-					<pre class="small"><code data-trim>
-  $ perf report -s type --data-type-json=profile.json
-  $ pahole -F btf --perf-data-type=profile.json vmlinux
+					<pre class="small"><code data-trim data-line-numbers="|4|5|6">
+# perf report -s type,typecln -H --group --stdio
+#            Overhead  Data Type / Data Type Cacheline
+    88.14%  32.83%     struct net_conn
+       58.96%  16.09%     struct net_conn: cache-line 0
+       29.18%   0.00%     struct net_conn: cache-line 2
+        0.00%  16.74%     struct net_conn: cache-line 1
 					</code></pre>
 					<ul>
-						<li>Histograms exported as JSON</li>
-						<li>pahole matches accesses by offset</li>
+						<li>--group: loads left, stores right</li>
+						<li>cache-line 0: loads and stores</li>
+						<li>cache-line 1: stores; cache-line 2: loads</li>
 					</ul>
+
+					<aside class="notes">Trimmed: other types left out. Cache-line 0 is where readers and writers meet.</aside>
 				</section>
 				<section>
-					<h2>Testing it: perf test -w false_sharing</h2>
+					<h2>Static view: pahole</h2>
 					<br>
-					<pre><code data-trim>
-  $ perf mem record -- perf test -w false_sharing 4 4
+					<pre class="small"><code data-trim data-line-numbers="|3-8|9-12|13-16">
+$ pahole -C net_conn ~/bin/perf
+struct net_conn {
+	uint32_t                   saddr;                /*     0     4 */
+	uint32_t                   daddr;                /*     4     4 */
+	uint16_t                   sport;                /*     8     2 */
+	uint16_t                   dport;                /*    10     2 */
+	uint8_t                    state;                /*    12     1 */
+	uint8_t                    protocol;             /*    13     1 */
+	uint64_t                   bytes_rx;             /*    16     8 */
+	uint64_t                   packets_rx;           /*    24     8 */
+	uint32_t                   rx_queue;             /*    32     4 */
+	uint32_t                   last_ack;             /*    60     4 */
+	/* --- cacheline 1 boundary (64 bytes) --- */
+	...
+	/* size: 192, cachelines: 3, members: 26 */
+} __attribute__((__aligned__(64)));
 					</code></pre>
 					<ul>
-						<li>Workload shaped as a TCP connection</li>
-						<li>Read-mostly identity + per-packet rx counters</li>
-						<li>Same cacheline, reader threads vs writer CPU</li>
-						<li>Exercises the data-type profiler and pahole</li>
+						<li>Where each member sits, cacheline by cacheline</li>
+						<li>No idea which members are hot</li>
 					</ul>
+
+					<aside class="notes">Trimmed to cacheline 0, padding left out.</aside>
 				</section>
 				<section>
-					<h2>pahole acts on it</h2>
+					<h2>pahole + JSON: the overlay</h2>
 					<br>
-					<pre class="small"><code data-trim>
-  $ perf data convert --to-ctf=./ctf.dir --data-type -i perf.data
-  $ pahole -F dwarf --perf-data-type=./ctf.dir -C net_conn perf
-  &gt;&gt;&gt; FALSE SHARING: cacheline 0: saddr / packets_rx
-  &gt;&gt;&gt; GROUP (true sharing): mss / snd_wscale -- consider same cacheline
-  (build ID verified: profiled binary == analyzed binary)
+					<pre class="small"><code data-trim data-line-numbers="|1-2|4-5|7-10">
+$ perf report -s type --data-type-json=profile.json
+$ pahole --perf-data-type=profile.json -C net_conn ~/bin/perf
+struct net_conn {
+	uint32_t                   saddr;                /*     0     4 |   8.7% R:3.1K */
+	uint32_t                   daddr;                /*     4     4 |   9.1% R:3.2K */
+	...
+	uint64_t                   bytes_rx;             /*    16     8 |   7.6% R:33 W:2.7K */
+	uint64_t                   packets_rx;           /*    24     8 |   0.4% R:19 W:134 */
+	uint32_t                   rx_queue;             /*    32     4 |   1.5% W:537 */
+	uint32_t                   last_ack;             /*    60     4 |   1.1% W:379 */
+	...
 					</code></pre>
+					<ul>
+						<li>Loads (R) and stores (W) per member</li>
+						<li>Per cacheline summary: counts and periods</li>
+					</ul>
+
+					<aside class="notes">Same perf.data. Identity fields read only, rx counters written, same cacheline. After the struct, pahole prints a per-cacheline summary with nr_reads, period_reads, nr_writes, period_writes per member.</aside>
+				</section>
+				<section>
+					<h2>pahole + CTF: false sharing</h2>
+					<br>
+					<pre class="small"><code data-trim data-line-numbers="|1-2|5">
+$ perf data convert --to-ctf=./ctf.dir --data-type -i perf.data
+$ pahole -F dwarf --perf-data-type=./ctf.dir -C net_conn ~/bin/perf
+struct net_conn {
+	...
+	   &gt;&gt;&gt; FALSE SHARING: cacheline 0: saddr / bytes_rx
+	...
+} __attribute__((__aligned__(64)));
+					</code></pre>
+					<ul>
+						<li>Each <a href="https://diamon.org/ctf/">CTF</a> sample keeps CPU, time, data address</li>
+						<li>Same instance, other CPU, a write, within 10us</li>
+						<li>Per-member counts match the JSON path</li>
+					</ul>
+
+					<aside class="notes">Preliminary: GROUP (true sharing) hints are also printed but still noisy, left off the slide.</aside>
+				</section>
+				<section>
+					<h2>What compilers could give us</h2>
+					<br>
+					<ul>
+						<li>perf rebuilds types: DWARF + disassembly</li>
+						<li>Coverage has a ceiling: unknowns remain</li>
+						<li>GCC keeps the field at final: MEM_EXPR</li>
+						<li>Ask: access records in the binary, like CO-RE</li>
+						<li>Full story: <a href="https://fedorapeople.org/~acme/prez/gnu-tools-cauldron-2026-perf-pahole-datatype/">GNU Tools Cauldron talk</a></li>
+					</ul>
+
+					<aside class="notes">Condensed from the Cauldron talk: clang only has this as TBAA, gone under -fno-strict-aliasing; GCC keeps MEM_EXPR/MEM_OFFSET through the final RTL pass even with -fno-strict-aliasing.</aside>
 				</section>
 				<section>
 					<h2>One metric to remember</h2>
@@ -494,6 +498,26 @@
 						<li>DWARF 6: new tags, adoption varies</li>
 						<li>BTF extensions for what C can't express</li>
 					</ul>
+				</section>
+				<section>
+					<h2>BTF: recent developments</h2>
+					<br>
+					<ul>
+						<li>Alan Maguire (Oracle), co-maintainer</li>
+						<li>[topic 1]</li>
+						<li>[topic 2]</li>
+						<li>[topic 3]</li>
+					</ul>
+
+					<aside class="notes">Handoff point: Alan picks up here if he makes it from his other talk; otherwise presented by Arnaldo.</aside>
+				</section>
+				<section>
+					<h2>[BTF: details]</h2>
+					<br>
+					<ul>
+						<li>[...]</li>
+					</ul>
+
 				</section>
 				<section>
 					<h2>THE END</h2>
