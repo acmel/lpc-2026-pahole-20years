@@ -294,7 +294,7 @@ gcc -gdwarf-5 -c test.c
 					<br>
 					<ul>
 						<li>C++ tags: namespaces, templates, using-decls</li>
-						<li>Rust: variant parts, discriminants (eBPF track talk!)</li>
+						<li>Rust: variant parts, discriminants (<a href="https://fedorapeople.org/~acme/prez/lpc-2026-btf-languages/">eBPF track talk!</a>)</li>
 						<li>Non-C precedent: Go at Trace Summit Bilbao 2023</li>
 					</ul>
 				</section>
@@ -557,10 +557,23 @@ static int map_create(union bpf_attr *attr, bool uattr__is_kernel);
 				<section>
 					<h2>Rust and other languages</h2>
 					<br>
+					<pre class="small"><code data-trim data-line-numbers="|2|3-6">
+struct Option&lt;u32&gt; {
+    u32 __discriminant;      /*  0  4 */
+    union {
+        struct None {};
+        struct Some { u32 __0; /*  4  4 */ };
+    };                       /*  4  4 */
+};
+					</code></pre>
 					<ul>
-						<li>[from Alan]</li>
+						<li>Rust enums: tagged unions, DW_TAG_variant_part</li>
+						<li>__discriminant from DW_AT_discr, not inferred</li>
+						<li>Mangled names: <a href="https://github.com/alan-maguire/dwarves/tree/pahole-rust">DECL_TAG</a>, trace by plain name</li>
+						<li>Details: <a href="https://fedorapeople.org/~acme/prez/lpc-2026-btf-languages/">Extending BTF, eBPF track</a></li>
 					</ul>
 
+					<aside class="notes">Teaser for the eBPF track talk, Extending BTF to support more languages (Alan Maguire, Arnaldo). Rust kernel modules exist, BTF was designed around C. Rust enums with data are tagged unions; DWARF describes them with DW_TAG_variant_part / DW_TAG_variant / DW_AT_discr_value, tags C never used. pahole follows the shape LLVM already emits in BTF: a STRUCT wrapper with one anonymous UNION. The discriminant is located through DW_AT_discr (DWARF 5, 5.7.10) rather than inferred, since rustc layout is unstable, and named __discriminant because BTF needs names; it is only emitted when it does not overlap the payload (niche layouts like Option<NonZero<u32>> emit nothing). Rust function tracing: kallsyms has mangled names, so pahole uses DW_AT_name and records DW_AT_linkage_name as a DECL_TAG, letting SEC(fentry/fmt<str>) attach by the plain name (Alan PoC, linked). Open questions (variant kind, 128-bit discriminants, vtables) are for the eBPF track talk.</aside>
 				</section>
 				<section>
 					<h2>BTF self-description</h2>
