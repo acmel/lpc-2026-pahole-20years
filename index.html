@@ -126,26 +126,18 @@
 					</ul>
 				</section>
 				<section>
-					<h2>Multi-format: CTF</h2>
+					<h2>Multi-format: CTF, then BTF</h2>
 					<br>
 					<ul>
-						<li>Mar 2008: initial CTF support, next to DWARF</li>
-						<li>On DaveM's request, using his libctf</li>
+						<li>Mar 2008: CTF, on DaveM's request (his libctf)</li>
 						<li>Made pahole multi-format</li>
-						<li>Paved the way for BTF a decade later</li>
-					</ul>
-				</section>
-				<section>
-					<h2>DWARF to BTF</h2>
-					<br>
-					<ul>
-						<li>First discussed with:</li>
-						<li>Daniel Borkmann, Alexei Starovoitov</li>
-						<li>Santa Fe, 2015</li>
-						<li>Contributed by Martin KaFai Lau (Meta), Mar 2018</li>
+						<li>BTF: Daniel, Alexei and me, Santa Fe 2015</li>
+						<li>Martin KaFai Lau (Meta) contributed it, Mar 2018</li>
 						<li>First use: pretty-print BPF maps</li>
 						<li>Now: kernel build, CO-RE</li>
 					</ul>
+
+					<aside class="notes">Merged from two slides. CTF support next to DWARF in March 2008, on DaveM's request, using his libctf: it made pahole multi-format and paved the way for BTF a decade later. DWARF to BTF first discussed with Daniel Borkmann and Alexei Starovoitov in Santa Fe, 2015; contributed by Martin KaFai Lau (Meta) in March 2018; first used to pretty-print BPF maps, now part of the kernel build and CO-RE.</aside>
 				</section>
 				<section>
 					<h2>Types decode files: <a href="https://git.kernel.org/pub/scm/devel/pahole/pahole.git/tree/man-pages/pahole.1">--prettify</a></h2>
@@ -250,41 +242,21 @@ gcc -gdwarf-5 -c test.c
 						<li>gcc/clang 22+: typedef → DW_TAG_atomic_type</li>
 						<li>Both correct: pahole reads DWARF, not source</li>
 						<li>DWARF version varies by distro: force -gdwarf-5</li>
+						<li>Proof: tests/tests -v --dump-artifacts 51</li>
 					</ul>
+					<aside class="notes">Artifact dumps: captured before the container exits, input (DWARF) next to output (pahole). With clang 21.1.8 the DWARF has no DW_TAG_atomic_type, so pahole --compile prints typedef int atomic_int, correct per the DWARF.</aside>
 				</section>
 				<section>
-					<h2>Proving it: artifact dumps</h2>
-					<br>
-					<pre class="small"><code data-trim>
-  === DWARF atomic types (abbreviated) ===
-  (empty)                        # No DW_TAG_atomic_type!
-  === pahole --compile output ===
-  typedef int atomic_int;        # correct, per the DWARF
-					</code></pre>
-					<ul>
-						<li>Capture before the container exits</li>
-						<li>Input (DWARF) vs output (pahole), side by side</li>
-						<li><tt>tests/tests -v --dump-artifacts 51</tt></li>
-					</ul>
-				</section>
-				<section>
-					<h2>Testing philosophy</h2>
+					<h2>Regression tests: pass or skip</h2>
 					<br>
 					<ul>
 						<li>Pass or gracefully skip: RHEL8 to Fedora latest</li>
 						<li>Detect capabilities, don't assume them</li>
 						<li>Every skip explains: what, where, why not a bug</li>
-					</ul>
-				</section>
-				<section>
-					<h2>Regression tests</h2>
-					<br>
-					<ul>
-						<li>~77 tests in <a href="https://git.kernel.org/pub/scm/devel/pahole/pahole.git/tree/tests">tests/</a>, every feature covered</li>
-						<li>95 test commits since Jan 2025</li>
+						<li>~77 tests in <a href="https://git.kernel.org/pub/scm/devel/pahole/pahole.git/tree/tests">tests/</a>, 95 commits since Jan 2025</li>
 						<li>With AI coding agents</li>
-						<li>Portable: detect, skip with reason, dump artifacts</li>
 					</ul>
+
 				</section>
 				<section>
 					<h2>Coverage, regularly</h2>
@@ -301,26 +273,18 @@ gcc -gdwarf-5 -c test.c
 					</ul>
 				</section>
 				<section>
-					<h2>First non-C language: C++</h2>
+					<h2>Languages: C++ since 2006</h2>
 					<br>
 					<ul>
-						<li>Dec 2006, weeks after the Oct 24 start</li>
-						<li>DW_TAG_inheritance</li>
-						<li>Early users: developers at CERN</li>
-						<li>32-bit to 64-bit move</li>
-						<li>Their codebase: mostly C++</li>
-						<li>Then: namespaces (2007), class_type (2008)</li>
-						<li>Templates</li>
+						<li>Dec 2006: C++, weeks after the Oct 24 start</li>
+						<li>Early users: CERN, moving 32 to 64-bit</li>
+						<li>Then: namespaces, class_type, templates</li>
+						<li>Recent: C++ using-decls, more templates</li>
+						<li>Rust: variant parts (<a href="https://fedorapeople.org/~acme/prez/lpc-2026-btf-languages/">eBPF track talk!</a>)</li>
+						<li>Go: Trace Summit Bilbao 2023</li>
 					</ul>
-				</section>
-				<section>
-					<h2>What's new: languages</h2>
-					<br>
-					<ul>
-						<li>C++ tags: namespaces, templates, using-decls</li>
-						<li>Rust: variant parts, discriminants (<a href="https://fedorapeople.org/~acme/prez/lpc-2026-btf-languages/">eBPF track talk!</a>)</li>
-						<li>Non-C precedent: Go at Trace Summit Bilbao 2023</li>
-					</ul>
+
+					<aside class="notes">Merged from two slides. C++ came in December 2006 with DW_TAG_inheritance, for early users at CERN moving from 32 to 64-bit with a mostly C++ codebase; then namespaces (2007), class_type (2008), templates. Recent: C++ tags (namespaces, templates, using-decls), Rust variant parts and discriminants (eBPF track talk), and the non-C precedent of Go at Trace Summit Bilbao 2023.</aside>
 				</section>
 				<section>
 					<h2>What's new: plumbing</h2>
@@ -354,38 +318,10 @@ gcc -gdwarf-5 -c test.c
 					</ul>
 				</section>
 				<section>
-					<h2>perf integration: finally real</h2>
-					<br>
-					<ul>
-						<li>Perennial request: pahole + perf together</li>
-						<li><a href="https://lwn.net/Articles/955709/">Data-type profiling</a> supplies access weights</li>
-						<li>pahole proposes cacheline groups</li>
-						<li>Flags false sharing</li>
-						<li>Full story: <a href="https://fedorapeople.org/~acme/prez/gnu-tools-cauldron-2026-perf-pahole-datatype/">GNU Tools Cauldron talk</a></li>
-					</ul>
-				</section>
-				<section>
-					<h2>Recording: <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-mem.txt">perf mem</a> record</h2>
-					<br>
-					<pre><code data-trim>
-# perf mem record -- perf test -w false_sharing
-[ perf record: Captured and wrote 5.520 MB perf.data (71250 samples) ]
-# perf evlist
-cpu/mem-loads,ldlat=30/P
-cpu/mem-stores/P
-					</code></pre>
-					<ul>
-						<li>Samples loads and stores with data addresses</li>
-						<li>Intel PEBS, <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-amd-ibs.txt">AMD IBS</a>, <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-arm-spe.txt">arm64 SPE</a></li>
-						<li>DWARF turns data addresses into types</li>
-					</ul>
-
-					<aside class="notes">perf's own false_sharing workload, shaped as a TCP connection: struct net_conn, 64-byte aligned. Cacheline 0: identity fields (read) and rx counters (written), the false-sharing line. Cacheline 1: tx and congestion fields, written. Cacheline 2: configuration, read only. Laptop i7-8650U, PEBS.</aside>
-				</section>
-				<section>
 					<h2>Data types, by cacheline</h2>
 					<br>
-					<pre class="small"><code data-trim data-line-numbers="|4|5|6">
+					<pre class="small"><code data-trim data-line-numbers="|1|5|6|7">
+# perf mem record -- perf test -w false_sharing
 # perf report -s type,typecln -H --group --stdio
 #            Overhead  Data Type / Data Type Cacheline
     88.14%  32.83%     struct net_conn
@@ -394,12 +330,13 @@ cpu/mem-stores/P
         0.00%  16.74%     struct net_conn: cache-line 1
 					</code></pre>
 					<ul>
+						<li><a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-mem.txt">perf mem</a>: Intel PEBS, <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-amd-ibs.txt">AMD IBS</a>, <a href="https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/tools/perf/Documentation/perf-arm-spe.txt">arm64 SPE</a></li>
 						<li>--group: loads left, stores right</li>
 						<li>cache-line 0: loads and stores</li>
 						<li>cache-line 1: stores; cache-line 2: loads</li>
 					</ul>
 
-					<aside class="notes">Trimmed: other types left out. Cache-line 0 is where readers and writers meet.</aside>
+					<aside class="notes">perf mem samples loads and stores with their data addresses (Intel PEBS, AMD IBS, arm64 SPE); DWARF turns the addresses into types. perf's own false_sharing workload, shaped as a TCP connection: struct net_conn, 64-byte aligned; 71250 samples on a laptop i7-8650U. Cacheline 0: identity fields (read) and rx counters (written), the false-sharing line. Cacheline 1: tx fields, written. Cacheline 2: configuration, read only. Trimmed: other types left out.</aside>
 				</section>
 				<section>
 					<h2>Static view: pahole</h2>
@@ -486,14 +423,6 @@ struct net_conn {
 					<aside class="notes">Condensed from the Cauldron talk: clang only has this as TBAA, gone under -fno-strict-aliasing; GCC keeps MEM_EXPR/MEM_OFFSET through the final RTL pass even with -fno-strict-aliasing.</aside>
 				</section>
 				<section>
-					<h2>One metric to remember</h2>
-					<br>
-					<br>
-					<p><i>bad_addr: how much of a kernel profile is disassembled from text that never executed.</i></p>
-					<br>
-					<p>Full story in the Cauldron talk.</p>
-				</section>
-				<section>
 					<h2>Ecosystem, not alone</h2>
 					<br>
 					<ul>
@@ -507,24 +436,18 @@ struct net_conn {
 					</ul>
 				</section>
 				<section>
-					<h2>Lessons learned</h2>
+					<h2>Lessons, and what is next</h2>
 					<br>
 					<ul>
 						<li>Compilers are inconsistent: read the DWARF</li>
-						<li>Tools evolve at different rates (6 years of bpftool!)</li>
 						<li>Tests must be environment-aware</li>
 						<li>Dumps save hours of debugging</li>
-					</ul>
-				</section>
-				<section>
-					<h2>Future</h2>
-					<br>
-					<ul>
-						<li>Rust: niche layouts, const generics</li>
-						<li>Rust async fn: state machines</li>
+						<li>Rust: niche layouts, const generics, async fn</li>
 						<li><a href="https://dwarfstd.org/">DWARF 6</a>: new tags, adoption varies</li>
 						<li>BTF extensions for what C can't express</li>
 					</ul>
+
+					<aside class="notes">Merged from two slides. Also a lesson: tools evolve at different rates, six years of bpftool versions in the test matrix.</aside>
 				</section>
 				<section>
 					<h2>BTF: recent developments</h2>
