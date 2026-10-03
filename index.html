@@ -486,24 +486,16 @@ $ pfunct --inline_sites --elf=vmlinux /tmp/vmlinux+inline
 				<section>
 					<h2>vmlinux BTF as a module</h2>
 					<br>
-					<pre class="small"><code data-trim data-line-numbers="|1-5|7">
-struct btf_link {
-       char module_name[__MODULE_NAME_LEN];
-       u8 sha256[BTF_LINK_SHA256_LEN];
-       u32 btf_size;
-} __packed;
-
-resolve_btfids --btf_link .BTF:btf_vmlinux:vmlinux.BTF
-					</code></pre>
 					<ul>
-						<li>CONFIG_DEBUG_INFO_BTF=m: ~5.4 MB back if unused</li>
-						<li>btf_vmlinux.ko, loaded on first BTF request</li>
-						<li>BTF is not debug info: CO-RE, kfuncs, sched_ext...</li>
-						<li>vmlinux keeps a link: module, SHA-256, size</li>
-						<li><a href="https://lore.kernel.org/bpf/20261001225214.12351-1-wanjay@amazon.com/">Jay Wang (Amazon), v4</a>; Alan: generic .BTF.link</li>
+						<li>Small VMs: ~5.4 MB of BTF, mostly unused</li>
+						<li><a href="https://lore.kernel.org/bpf/20261001225214.12351-1-wanjay@amazon.com/">v4</a>: CONFIG_DEBUG_INFO_BTF=m, loaded on first use</li>
+						<li>Pushback: ~2k lines for maybe-saved memory</li>
+						<li>Alternative: <a href="https://github.com/kernel-patches/bpf/compare/bpf-next_base...theihor:bpf:vmlinux.btf.zstd-20261002">zstd in the image</a>, 6.7 MB &rarr; 2.2 MB</li>
+						<li>Alexei: compression the only one worth considering</li>
+						<li>Inline BTF: a module is still the plan (.BTF.link)</li>
 					</ul>
 
-					<aside class="notes">Jay Wang (Amazon), [PATCH bpf-next v4 00/12] bpf: make the vmlinux BTF an on-demand loadable module (CONFIG_DEBUG_INFO_BTF=m) to save ~5.4 MB memory, 1 Oct 2026. CONFIG_DEBUG_INFO_BTF becomes tristate; with =m the BTF is generated as before but packed into btf_vmlinux.ko, loaded by the kernel the first time user space needs it (bpf() BPF_PROG_LOAD/MAP_CREATE/BTF_LOAD retried after loading, BPF_BTF_GET_NEXT_ID, read() of /sys/kernel/btf/vmlinux, tracefs and bpffs requests), never from contexts holding locks module loading needs; once loaded it stays. =y untouched. Distributions cannot just set =n: BTF is not debug info anymore, CO-RE, fentry/fexit, kfuncs, struct_ops, sched_ext and bpf-lsm depend on it. Use case: fleets of small VMs at cloud providers, where vmlinux BTF memory, mostly unused, costs customers money; ship it as a module, loaded when needed. Alan proposed a generic approach covering both Jay Wang's vmlinux BTF module and his inline BTF module, kept separate since some want vmlinux BTF as a module but not inline BTF: .BTF.link / .BTF.inline.link sections in vmlinux with struct btf_link (module name, SHA-256, size), filled by resolve_btfids at the same time it patches .BTF_ids, via --btf_link section:module:raw-btf-file, e.g. .BTF:btf_vmlinux:vmlinux.BTF and .BTF.inline:btf_vmlinux_inline:vmlinux.BTF.inline. resolve_btfids accepts several --btf_link options, so whichever series lands first adds the support the other uses.</aside>
+					<aside class="notes">Jay Wang (Amazon), [PATCH bpf-next v4 00/12] bpf: make the vmlinux BTF an on-demand loadable module (CONFIG_DEBUG_INFO_BTF=m) to save ~5.4 MB memory, 1 Oct 2026: btf_vmlinux.ko loaded the first time user space needs BTF (bpf() commands retried after loading, /sys/kernel/btf/vmlinux reads, tracefs and bpffs requests), never from contexts holding locks module loading needs; =y untouched. Motivation: fleets of instances with 1 GiB or less, where 5.4 MB per instance is real money. Discussion, 2 Oct 2026: Ihor Solodrai asked whether ~2k lines of complex kernel code are worth maybe saving under 10 MB: a user that knows it does not need BPF can turn it off, one that needs it must load the BTF anyway, and just-in-time BPF tools still need the memory reserved; vmlinux BTF is what makes BPF useful and is trusted by the verifier, unlike inline BTF, which tracing tools consume and can decide about themselves. He offered two simpler alternatives with prototypes: keep a zstd-compressed blob in the image and decompress and parse it on first use (6.7 MB to 2.2 MB, about 3x), or ship /lib/modules/$r/vmlinux.btf checked against a SHA-256 in the image (synchronous file I/O under caller locks is the catch). Alexei Starovoitov: the compressed one is the only one of the three worth considering. Alan proposed a generic .BTF.link section (struct btf_link: module name, SHA-256, size), filled by resolve_btfids --btf_link section:module:raw-btf-file, serving both this and the inline BTF module, which stays relevant for inline BTF.</aside>
 				</section>
 				<section>
 					<h2>True signatures</h2>
